@@ -168,7 +168,7 @@ Discarded input sections
                 0x00000000       0xb8 SSD1306.o
  .debug_ranges  0x00000000       0xc0 SSD1306.o
  .debug_line    0x00000000      0x630 SSD1306.o
- .debug_str     0x00000000      0x3cf SSD1306.o
+ .debug_str     0x00000000      0x3b4 SSD1306.o
  .comment       0x00000000       0x31 SSD1306.o
  .debug_frame   0x00000000      0x278 SSD1306.o
  .text          0x00000000        0x0 timer328P.o
@@ -179,10 +179,6 @@ Discarded input sections
  .text          0x00000000        0x0 main.o
  .data          0x00000000        0x0 main.o
  .bss           0x00000000        0x0 main.o
- .text.button_state1
-                0x00000000       0x28 main.o
- .text.button_state2
-                0x00000000       0x28 main.o
  .rodata._Timer_OC_Offset
                 0x00000000        0x2 main.o
  .text          0x00000000        0x0 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5\libm.a(addsf3.o)
@@ -1019,7 +1015,7 @@ END GROUP
 .debug_sfnames
  *(.debug_sfnames)
 
-.debug_aranges  0x00000000      0x170
+.debug_aranges  0x00000000      0x160
  *(.debug_aranges)
  .debug_aranges
                 0x00000000       0x40 I2C328P.o
@@ -1028,60 +1024,60 @@ END GROUP
  .debug_aranges
                 0x000000d8       0x28 timer328P.o
  .debug_aranges
-                0x00000100       0x70 main.o
+                0x00000100       0x60 main.o
 
 .debug_pubnames
  *(.debug_pubnames)
 
-.debug_info     0x00000000     0x18c2
+.debug_info     0x00000000     0x17cf
  *(.debug_info .gnu.linkonce.wi.*)
  .debug_info    0x00000000      0x5f4 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/gcc/dev/atmega328p/avr5/crtatmega328p.o
  .debug_info    0x000005f4      0x215 I2C328P.o
  .debug_info    0x00000809      0x7e8 PCF8574A.o
  .debug_info    0x00000ff1      0x1bb timer328P.o
- .debug_info    0x000011ac      0x716 main.o
+ .debug_info    0x000011ac      0x623 main.o
 
-.debug_abbrev   0x00000000      0xc47
+.debug_abbrev   0x00000000      0xbd0
  *(.debug_abbrev)
  .debug_abbrev  0x00000000      0x5a2 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/gcc/dev/atmega328p/avr5/crtatmega328p.o
  .debug_abbrev  0x000005a2      0x122 I2C328P.o
  .debug_abbrev  0x000006c4      0x268 PCF8574A.o
  .debug_abbrev  0x0000092c       0xc1 timer328P.o
- .debug_abbrev  0x000009ed      0x25a main.o
+ .debug_abbrev  0x000009ed      0x1e3 main.o
 
-.debug_line     0x00000000      0xf13
+.debug_line     0x00000000      0xe43
  *(.debug_line .debug_line.* .debug_line_end)
  .debug_line    0x00000000      0x134 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/gcc/dev/atmega328p/avr5/crtatmega328p.o
  .debug_line    0x00000134      0x2bf I2C328P.o
  .debug_line    0x000003f3      0x5fd PCF8574A.o
  .debug_line    0x000009f0      0x115 timer328P.o
- .debug_line    0x00000b05      0x40e main.o
+ .debug_line    0x00000b05      0x33e main.o
 
-.debug_frame    0x00000000      0x368
+.debug_frame    0x00000000      0x348
  *(.debug_frame)
  .debug_frame   0x00000000       0x88 I2C328P.o
  .debug_frame   0x00000088      0x174 PCF8574A.o
  .debug_frame   0x000001fc       0x34 timer328P.o
- .debug_frame   0x00000230      0x138 main.o
+ .debug_frame   0x00000230      0x118 main.o
 
-.debug_str      0x00000000      0x8ea
+.debug_str      0x00000000      0x86d
  *(.debug_str)
  .debug_str     0x00000000      0x208 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.7.374/gcc/dev/atmega328p/avr5/crtatmega328p.o
- .debug_str     0x00000208      0x1d8 I2C328P.o
-                                0x211 (size before relaxing)
- .debug_str     0x000003e0      0x188 PCF8574A.o
-                                0x319 (size before relaxing)
- .debug_str     0x00000568      0x1ea timer328P.o
-                                0x34e (size before relaxing)
- .debug_str     0x00000752      0x198 main.o
-                                0x3d2 (size before relaxing)
+ .debug_str     0x00000208      0x1bd I2C328P.o
+                                0x1f6 (size before relaxing)
+ .debug_str     0x000003c5      0x188 PCF8574A.o
+                                0x2fe (size before relaxing)
+ .debug_str     0x0000054d      0x1ea timer328P.o
+                                0x333 (size before relaxing)
+ .debug_str     0x00000737      0x136 main.o
+                                0x354 (size before relaxing)
 
-.debug_loc      0x00000000      0xbfe
+.debug_loc      0x00000000      0xb6e
  *(.debug_loc)
  .debug_loc     0x00000000      0x2e3 I2C328P.o
  .debug_loc     0x000002e3      0x5e0 PCF8574A.o
  .debug_loc     0x000008c3       0x81 timer328P.o
- .debug_loc     0x00000944      0x2ba main.o
+ .debug_loc     0x00000944      0x22a main.o
 
 .debug_macinfo
  *(.debug_macinfo)
@@ -1101,12 +1097,12 @@ END GROUP
 .debug_pubtypes
  *(.debug_pubtypes)
 
-.debug_ranges   0x00000000      0x148
+.debug_ranges   0x00000000      0x138
  *(.debug_ranges)
  .debug_ranges  0x00000000       0x30 I2C328P.o
  .debug_ranges  0x00000030       0xa0 PCF8574A.o
  .debug_ranges  0x000000d0       0x18 timer328P.o
- .debug_ranges  0x000000e8       0x60 main.o
+ .debug_ranges  0x000000e8       0x50 main.o
 
 .debug_macro
  *(.debug_macro)

@@ -13,21 +13,21 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY
   4 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  00001640  2**2
                   CONTENTS, READONLY
-  5 .debug_aranges 00000170  00000000  00000000  00001680  2**0
+  5 .debug_aranges 00000160  00000000  00000000  00001680  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_info   000018c2  00000000  00000000  000017f0  2**0
+  6 .debug_info   000017cf  00000000  00000000  000017e0  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_abbrev 00000c47  00000000  00000000  000030b2  2**0
+  7 .debug_abbrev 00000bd0  00000000  00000000  00002faf  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_line   00000f13  00000000  00000000  00003cf9  2**0
+  8 .debug_line   00000e43  00000000  00000000  00003b7f  2**0
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_frame  00000368  00000000  00000000  00004c0c  2**2
+  9 .debug_frame  00000348  00000000  00000000  000049c4  2**2
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_str    000008ea  00000000  00000000  00004f74  2**0
+ 10 .debug_str    0000086d  00000000  00000000  00004d0c  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_loc    00000bfe  00000000  00000000  0000585e  2**0
+ 11 .debug_loc    00000b6e  00000000  00000000  00005579  2**0
                   CONTENTS, READONLY, DEBUGGING
- 12 .debug_ranges 00000148  00000000  00000000  0000645c  2**0
+ 12 .debug_ranges 00000138  00000000  00000000  000060e7  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -101,6 +101,12 @@ Disassembly of section .text:
       a2:	0c 94 00 00 	jmp	0	; 0x0 <__vectors>
 
 000000a6 <I2C_Init>:
+
+		// wait for stop to automatically clear (stop completed)
+		while (TWCR & 0x10)
+		;
+	}
+}
       a6:	cf 92       	push	r12
       a8:	df 92       	push	r13
       aa:	ef 92       	push	r14
@@ -255,80 +261,192 @@ Disassembly of section .text:
      200:	08 95       	ret
 
 00000202 <I2C_Read8>:
+	return 0;
+}
+
+// assumes transaction is open
+int I2C_Read8 (unsigned char *ucData, int bAck, int bStop)
+{
      202:	fc 01       	movw	r30, r24
+	// clear TWINT, keep TWI enabled
+	if (bAck)
      204:	61 15       	cp	r22, r1
      206:	71 05       	cpc	r23, r1
      208:	21 f0       	breq	.+8      	; 0x212 <I2C_Read8+0x10>
+	  TWCR = 0b11000100;
      20a:	84 ec       	ldi	r24, 0xC4	; 196
      20c:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7f80bc>
      210:	03 c0       	rjmp	.+6      	; 0x218 <I2C_Read8+0x16>
+	else
+	  TWCR = 0b10000100;
      212:	84 e8       	ldi	r24, 0x84	; 132
      214:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7f80bc>
+
+	// look for data sent, with TWINT bit
+	while (!(TWCR & 0x80))
      218:	90 91 bc 00 	lds	r25, 0x00BC	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7f80bc>
      21c:	99 23       	and	r25, r25
      21e:	e4 f7       	brge	.-8      	; 0x218 <I2C_Read8+0x16>
+	  ;
+
+	if (bAck)
      220:	67 2b       	or	r22, r23
      222:	31 f0       	breq	.+12     	; 0x230 <I2C_Read8+0x2e>
+	{
+		// look for data received, ack returned
+		if ((TWSR & 0b11111000) != 0x50)
      224:	90 91 b9 00 	lds	r25, 0x00B9	; 0x8000b9 <__TEXT_REGION_LENGTH__+0x7f80b9>
      228:	98 7f       	andi	r25, 0xF8	; 248
      22a:	90 35       	cpi	r25, 0x50	; 80
      22c:	31 f0       	breq	.+12     	; 0x23a <I2C_Read8+0x38>
      22e:	14 c0       	rjmp	.+40     	; 0x258 <I2C_Read8+0x56>
+		  return -3;
+	}
+	else
+	{
+		// look for data received, ack not returned
+		if ((TWSR & 0b11111000) != 0x58)
      230:	90 91 b9 00 	lds	r25, 0x00B9	; 0x8000b9 <__TEXT_REGION_LENGTH__+0x7f80b9>
      234:	98 7f       	andi	r25, 0xF8	; 248
      236:	98 35       	cpi	r25, 0x58	; 88
      238:	91 f4       	brne	.+36     	; 0x25e <I2C_Read8+0x5c>
+		  return -3;
+	}
+
+	// read the data byte
+	*ucData = TWDR;
      23a:	80 91 bb 00 	lds	r24, 0x00BB	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7f80bb>
      23e:	80 83       	st	Z, r24
+	
+	// if stop requested, send it
+	if (bStop)
      240:	45 2b       	or	r20, r21
      242:	81 f0       	breq	.+32     	; 0x264 <I2C_Read8+0x62>
+	{
+		// send STOP
+		TWCR = 0b10010100;
      244:	84 e9       	ldi	r24, 0x94	; 148
      246:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7f80bc>
+
+		// wait for stop to automatically clear (stop completed)
+		while (TWCR & 0x10)
      24a:	80 91 bc 00 	lds	r24, 0x00BC	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7f80bc>
      24e:	84 fd       	sbrc	r24, 4
      250:	fc cf       	rjmp	.-8      	; 0x24a <I2C_Read8+0x48>
+			;
+	}
+
+	return 0;
      252:	80 e0       	ldi	r24, 0x00	; 0
      254:	90 e0       	ldi	r25, 0x00	; 0
      256:	08 95       	ret
+
+	if (bAck)
+	{
+		// look for data received, ack returned
+		if ((TWSR & 0b11111000) != 0x50)
+		  return -3;
      258:	8d ef       	ldi	r24, 0xFD	; 253
      25a:	9f ef       	ldi	r25, 0xFF	; 255
      25c:	08 95       	ret
+	}
+	else
+	{
+		// look for data received, ack not returned
+		if ((TWSR & 0b11111000) != 0x58)
+		  return -3;
      25e:	8d ef       	ldi	r24, 0xFD	; 253
      260:	9f ef       	ldi	r25, 0xFF	; 255
      262:	08 95       	ret
+		// wait for stop to automatically clear (stop completed)
+		while (TWCR & 0x10)
+			;
+	}
+
+	return 0;
      264:	80 e0       	ldi	r24, 0x00	; 0
      266:	90 e0       	ldi	r25, 0x00	; 0
+}
      268:	08 95       	ret
 
 0000026a <I2C_Write8>:
+
+// assumes transaction is open
+int I2C_Write8 (unsigned char ucData, int bStop)
+{
+	// enter master write mode
+	TWDR = ucData;
      26a:	80 93 bb 00 	sts	0x00BB, r24	; 0x8000bb <__TEXT_REGION_LENGTH__+0x7f80bb>
+
+	// clear TWINT, no START, keep TWI enabled
+	TWCR = 0b10000100;
      26e:	84 e8       	ldi	r24, 0x84	; 132
      270:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7f80bc>
+	
+	// look for data sent, with TWINT bit
+	while (!(TWCR & 0x80))
      274:	80 91 bc 00 	lds	r24, 0x00BC	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7f80bc>
      278:	88 23       	and	r24, r24
      27a:	e4 f7       	brge	.-8      	; 0x274 <I2C_Write8+0xa>
+	  ;
+
+	// look for data sent with ACK
+	if ((TWSR & 0b11111000) != 0x28)
      27c:	80 91 b9 00 	lds	r24, 0x00B9	; 0x8000b9 <__TEXT_REGION_LENGTH__+0x7f80b9>
      280:	88 7f       	andi	r24, 0xF8	; 248
      282:	88 32       	cpi	r24, 0x28	; 40
      284:	61 f4       	brne	.+24     	; 0x29e <I2C_Write8+0x34>
+	  return -3;
+	
+	// if stop requested, send it
+	if (bStop)
      286:	67 2b       	or	r22, r23
      288:	69 f0       	breq	.+26     	; 0x2a4 <I2C_Write8+0x3a>
+	{
+		// send STOP
+		TWCR = 0b10010100;
      28a:	84 e9       	ldi	r24, 0x94	; 148
      28c:	80 93 bc 00 	sts	0x00BC, r24	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7f80bc>
+
+		// wait for stop to automatically clear (stop completed)
+		while (TWCR & 0x10)
      290:	80 91 bc 00 	lds	r24, 0x00BC	; 0x8000bc <__TEXT_REGION_LENGTH__+0x7f80bc>
      294:	84 fd       	sbrc	r24, 4
      296:	fc cf       	rjmp	.-8      	; 0x290 <I2C_Write8+0x26>
+			;
+	}
+
+	return 0;
      298:	80 e0       	ldi	r24, 0x00	; 0
      29a:	90 e0       	ldi	r25, 0x00	; 0
      29c:	08 95       	ret
+	while (!(TWCR & 0x80))
+	  ;
+
+	// look for data sent with ACK
+	if ((TWSR & 0b11111000) != 0x28)
+	  return -3;
      29e:	8d ef       	ldi	r24, 0xFD	; 253
      2a0:	9f ef       	ldi	r25, 0xFF	; 255
      2a2:	08 95       	ret
+		// wait for stop to automatically clear (stop completed)
+		while (TWCR & 0x10)
+			;
+	}
+
+	return 0;
      2a4:	80 e0       	ldi	r24, 0x00	; 0
      2a6:	90 e0       	ldi	r25, 0x00	; 0
+}
      2a8:	08 95       	ret
 
 000002aa <PCF8574A_Write>:
+
+// set addr in A to LCD
+void LCD_Addr (unsigned char addr)
+{
+	addr |= 0x80;
+	LCD_Inst (addr);
      2aa:	cf 93       	push	r28
      2ac:	c8 2f       	mov	r28, r24
      2ae:	60 e0       	ldi	r22, 0x00	; 0
@@ -705,102 +823,196 @@ Disassembly of section .text:
      61e:	08 95       	ret
 
 00000620 <LCD_AddrXY>:
+	// 40
+	// 14
+	// 54
+	
+	// range check
+	if (iy > 3)
      620:	64 30       	cpi	r22, 0x04	; 4
      622:	98 f4       	brcc	.+38     	; 0x64a <LCD_AddrXY+0x2a>
+		return;
+	if (ix > 19)
      624:	84 31       	cpi	r24, 0x14	; 20
      626:	88 f4       	brcc	.+34     	; 0x64a <LCD_AddrXY+0x2a>
+		return;
+	
+	// calculate address offset
+	if (!iy)
      628:	66 23       	and	r22, r22
      62a:	31 f0       	breq	.+12     	; 0x638 <LCD_AddrXY+0x18>
+		phoffset = 0x00;
+	else if (iy == 1)
      62c:	61 30       	cpi	r22, 0x01	; 1
      62e:	31 f0       	breq	.+12     	; 0x63c <LCD_AddrXY+0x1c>
+		phoffset = 0x40;
+	else if (iy == 2)
      630:	62 30       	cpi	r22, 0x02	; 2
      632:	31 f4       	brne	.+12     	; 0x640 <LCD_AddrXY+0x20>
+		phoffset = 0x14;
      634:	94 e1       	ldi	r25, 0x14	; 20
      636:	05 c0       	rjmp	.+10     	; 0x642 <LCD_AddrXY+0x22>
+	if (ix > 19)
+		return;
+	
+	// calculate address offset
+	if (!iy)
+		phoffset = 0x00;
      638:	90 e0       	ldi	r25, 0x00	; 0
      63a:	03 c0       	rjmp	.+6      	; 0x642 <LCD_AddrXY+0x22>
+	else if (iy == 1)
+		phoffset = 0x40;
      63c:	90 e4       	ldi	r25, 0x40	; 64
      63e:	01 c0       	rjmp	.+2      	; 0x642 <LCD_AddrXY+0x22>
+	else if (iy == 2)
+		phoffset = 0x14;
+	else
+		phoffset = 0x54;
      640:	94 e5       	ldi	r25, 0x54	; 84
+	
+	phoffset += ix;
      642:	89 0f       	add	r24, r25
+	
+	phoffset |= 0x80; // make into dd addr command
+	
+	LCD_Inst (phoffset);
      644:	80 68       	ori	r24, 0x80	; 128
      646:	0e 94 11 02 	call	0x422	; 0x422 <LCD_Inst>
      64a:	08 95       	ret
 
 0000064c <LCD_String>:
+}
+
+void LCD_String (char * straddr)
+{
      64c:	cf 93       	push	r28
      64e:	df 93       	push	r29
      650:	ec 01       	movw	r28, r24
+	for (; *straddr; ++straddr)
      652:	03 c0       	rjmp	.+6      	; 0x65a <LCD_String+0xe>
+		LCD_Data (*straddr);
      654:	0e 94 5d 02 	call	0x4ba	; 0x4ba <LCD_Data>
+	LCD_Inst (phoffset);
+}
+
+void LCD_String (char * straddr)
+{
+	for (; *straddr; ++straddr)
      658:	21 96       	adiw	r28, 0x01	; 1
      65a:	88 81       	ld	r24, Y
      65c:	81 11       	cpse	r24, r1
      65e:	fa cf       	rjmp	.-12     	; 0x654 <LCD_String+0x8>
+		LCD_Data (*straddr);
+}
      660:	df 91       	pop	r29
      662:	cf 91       	pop	r28
      664:	08 95       	ret
 
 00000666 <LCD_StringXY>:
+
+// start the string at X/Y
+void LCD_StringXY (unsigned char ix, unsigned char iy, char * straddr)
+{
      666:	cf 93       	push	r28
      668:	df 93       	push	r29
+	// range check
+	if (iy > 3)
      66a:	64 30       	cpi	r22, 0x04	; 4
      66c:	40 f4       	brcc	.+16     	; 0x67e <LCD_StringXY+0x18>
+	return;
+	if (ix > 19)
      66e:	84 31       	cpi	r24, 0x14	; 20
      670:	30 f4       	brcc	.+12     	; 0x67e <LCD_StringXY+0x18>
      672:	ea 01       	movw	r28, r20
+	return;
+
+	LCD_AddrXY (ix, iy);
      674:	0e 94 10 03 	call	0x620	; 0x620 <LCD_AddrXY>
+	
+	// show the string...
+	LCD_String (straddr);
      678:	ce 01       	movw	r24, r28
      67a:	0e 94 26 03 	call	0x64c	; 0x64c <LCD_String>
+}
      67e:	df 91       	pop	r29
      680:	cf 91       	pop	r28
      682:	08 95       	ret
 
 00000684 <LCD_Clear>:
+
+// clear the display
+void LCD_Clear (void)
+{
+	LCD_Inst (0x01);
      684:	81 e0       	ldi	r24, 0x01	; 1
      686:	0e 94 11 02 	call	0x422	; 0x422 <LCD_Inst>
      68a:	08 95       	ret
 
 0000068c <Timer_Init>:
+void Timer_Init (Timer_Prescale pre, unsigned int uiInitialOffset)
+{
+	// start code will power off all modules...
+	// ensure power is on : Timer 1
+	// PRR on 328P, PRR0 on 328PB
+	PRR &= ~(1 << PRTIM1);
      68c:	e4 e6       	ldi	r30, 0x64	; 100
      68e:	f0 e0       	ldi	r31, 0x00	; 0
      690:	90 81       	ld	r25, Z
      692:	97 7f       	andi	r25, 0xF7	; 247
      694:	90 83       	st	Z, r25
+
+	// set prescale to requested rate
+	TCCR1B = 0;		// noise canceler disabled, waveform generator normal
      696:	e1 e8       	ldi	r30, 0x81	; 129
      698:	f0 e0       	ldi	r31, 0x00	; 0
      69a:	10 82       	st	Z, r1
+	TCCR1B |= pre;	// put back requested prescale bits
      69c:	90 81       	ld	r25, Z
      69e:	89 2b       	or	r24, r25
      6a0:	80 83       	st	Z, r24
+	
+	// setup initial event for output compare 1 A
+	OCR1A = TCNT1 + uiInitialOffset;
      6a2:	80 91 84 00 	lds	r24, 0x0084	; 0x800084 <__TEXT_REGION_LENGTH__+0x7f8084>
      6a6:	90 91 85 00 	lds	r25, 0x0085	; 0x800085 <__TEXT_REGION_LENGTH__+0x7f8085>
      6aa:	68 0f       	add	r22, r24
      6ac:	79 1f       	adc	r23, r25
      6ae:	70 93 89 00 	sts	0x0089, r23	; 0x800089 <__TEXT_REGION_LENGTH__+0x7f8089>
      6b2:	60 93 88 00 	sts	0x0088, r22	; 0x800088 <__TEXT_REGION_LENGTH__+0x7f8088>
+
+	// setup interrupt for output compare
+	// timer/counter 1, output compare A match interrupt enable
+	TIMSK1 = 0b00000010;
      6b6:	82 e0       	ldi	r24, 0x02	; 2
      6b8:	80 93 6f 00 	sts	0x006F, r24	; 0x80006f <__TEXT_REGION_LENGTH__+0x7f806f>
      6bc:	08 95       	ret
 
 000006be <init_portB>:
-		_delay_ms(DEBOUNCE_TIME);
-		if(!(PINB & (1<<BUTTON2))) return 1;
-	}
-	return 0;
+int SWL_Pushed (SWL_SwitchPos);
+
+void init_portB()
+{
 	
-}
+	DDRB = 0xFFu;//all pin of port b as output
      6be:	8f ef       	ldi	r24, 0xFF	; 255
      6c0:	84 b9       	out	0x04, r24	; 4
+	
+	// Set PB1 and PB2 as input pins
+	DDRB &= ~(1 << BUTTON1);
      6c2:	84 b1       	in	r24, 0x04	; 4
      6c4:	8d 7f       	andi	r24, 0xFD	; 253
      6c6:	84 b9       	out	0x04, r24	; 4
+	DDRB &= ~(1 << BUTTON2);
      6c8:	84 b1       	in	r24, 0x04	; 4
      6ca:	8b 7f       	andi	r24, 0xFB	; 251
      6cc:	84 b9       	out	0x04, r24	; 4
+
+	// Enable pull-up resistors on PB1 and PB2
+	PORTB |= (1 << BUTTON1);
      6ce:	85 b1       	in	r24, 0x05	; 5
      6d0:	82 60       	ori	r24, 0x02	; 2
      6d2:	85 b9       	out	0x05, r24	; 5
+	PORTB |= (1 << BUTTON2);
      6d4:	85 b1       	in	r24, 0x05	; 5
      6d6:	84 60       	ori	r24, 0x04	; 4
      6d8:	85 b9       	out	0x05, r24	; 5
